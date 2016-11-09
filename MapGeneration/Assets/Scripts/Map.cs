@@ -12,6 +12,7 @@ public class Map : MonoBehaviour {
     private int[,] kernel = new int[,] { { 1, 1, 1 }, { 1, 0, 1 }, { 1, 1, 1 } };
     private int[,] map;
     private static int tileAmount, tileTotal;
+    private const float updateRate = 0.0000000000001f;
     public int mapSizeX = 100, mapSizeY = 60;
     public string seed;
     public bool useRandomSeed;
@@ -36,10 +37,14 @@ public class Map : MonoBehaviour {
         {
             FillMap();
             FixMap(1);
-            IllustrateMap();
+            StartCoroutine(IllustrateMap());
         }
     }
 
+    // --- <Summary Begin> ---
+    // Takes a string, and gets a HashCode from it. 
+    // To create a map of values between 0 and the amount of different tiles.
+    // --- <Summary End> ---
     private void FillMap()
     {
         // Sets the seed before setting up the map
@@ -63,6 +68,10 @@ public class Map : MonoBehaviour {
             }
     }
 
+    // --- <Summary Begin> ---
+    // Does a Kernel comparison with the other tiles around it.
+    // All depends on how the kernel has been setup.
+    // --- <Summary End> ---
     private void FixMap(int _x)
     {
         // _x decides how many times this filtering should run through the map.
@@ -84,7 +93,10 @@ public class Map : MonoBehaviour {
                 }
     }
 
-    private void IllustrateMap()
+    // --- <Summary Begin> ---
+    // Creates and updates the map with the correct texture, on every gameobject.
+    // --- <Summary End> ---
+    private IEnumerator IllustrateMap()
     {
         // First time it is run, and need to create all the tiles, before it can adjusts them.
         if (tileAmount < tileTotal) 
@@ -94,7 +106,7 @@ public class Map : MonoBehaviour {
                 {
                     GameObject temp = null;
                     temp = Instantiate(tiles[map[x, y]], new Vector3((this.transform.position.x - mapSizeX / 2.0f) + x, this.transform.position.y, (this.transform.position.z - mapSizeY / 2.0f) + y), Quaternion.identity) as GameObject;
-                    temp.transform.parent = this.transform;
+                    temp.transform.SetParent(this.transform);
                     tileMap[x, y] = temp;
                     tileAmount++;
                 }
@@ -103,7 +115,25 @@ public class Map : MonoBehaviour {
         {
             for (int x = 0; x < mapSizeX; x++)
                 for (int y = 0; y < mapSizeY; y++)
-                    tileMap[x, y].GetComponent<Renderer>().sharedMaterial = tiles[map[x, y]].GetComponent<Renderer>().sharedMaterial;
+                {
+                    if (tileMap[x, y].tag != tiles[map[x, y]].tag)
+                    {
+                        SwitchGameObject(tileMap[x, y], tiles[map[x, y]]);
+                        // Comment this out if it is too slow at updating.
+                        yield return new WaitForSeconds(updateRate);
+                    }
+                }
         }
+    }
+
+    // --- <Summary Begin> ---
+    // Updates the Gameobject with the correct coresponding with the tile numbers.
+    // --- <Summary End> ---
+    private void SwitchGameObject(GameObject oriObj, GameObject newObj)
+    {
+        GameObject temp = null;
+        temp = Instantiate(newObj, oriObj.transform.position, Quaternion.identity) as GameObject;
+        temp.transform.SetParent(this.transform);
+        Destroy(oriObj);
     }
 }
